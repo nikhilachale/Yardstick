@@ -6,7 +6,12 @@ export default function TransactionList({ transactions, onEdit, onDelete }) {
   return (
     <div className="space-y-2">
       {transactions.map((tx) => (
-        <TransactionItem key={tx.id} transaction={tx} onEdit={onEdit} onDelete={onDelete} />
+        <TransactionItem
+          key={tx._id} // Use _id
+          transaction={tx}
+          onEdit={() => onEdit(tx)} // Pass the transaction to the onEdit function
+          onDelete={() => onDelete(tx._id)} // Use _id
+        />
       ))}
     </div>
   );

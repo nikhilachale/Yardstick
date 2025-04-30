@@ -1,5 +1,11 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import {
+  fetchTransactions,
+  addTransaction,
+  updateTransaction,
+  deleteTransaction
+} from '@/lib/api';
 
 import TransactionForm from '@/components/TransactionForm';
 import TransactionList from '@/components/TransactionList';
@@ -17,33 +23,54 @@ const defaultBudgets = {
   Other: 2000,
 };
 
-interface Transaction {
-  id: string;
-  description: string;
-  amount: number;
-  category: string;
-  date: string;
-}
+  interface Transaction {
+    _id: string;  // MongoDB ID field
+    description: string;
+    amount: number;
+    category: string;
+    date: string;
+  }
+
 
 export default function HomePage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [budgets, setBudgets] = useState(defaultBudgets);
 
-  const handleAddOrEdit = (tx: Omit<Transaction, 'id'>) => {
+  useEffect(() => {
+    const load = async () => {
+      const res = await fetchTransactions();
+      setTransactions(res.data);
+    };
+    load();
+  }, []);
+
+  const handleAddOrEdit = async (tx: Omit<Transaction, 'id'>) => {
     if (editing) {
+      console.log(`Updating transaction with ID: ${editing._id}`, tx);
+      const res = await updateTransaction(editing._id, tx);
       setTransactions((prev) =>
-        prev.map((t) => (t.id === editing.id ? { ...t, ...tx } : t))
+        prev.map((t) => (t._id === editing._id ? res.data : t))
       );
       setEditing(null);
     } else {
-      setTransactions((prev) => [...prev, { ...tx, id: Date.now().toString() }]);
+      console.log('Adding new transaction:', tx);
+      const res = await addTransaction(tx);
+      setTransactions((prev) => [res.data, ...prev]);
     }
   };
 
   const handleEdit = (tx: Transaction) => setEditing(tx);
-  const handleDelete = (id: string) =>
-    setTransactions((prev) => prev.filter((t) => t.id !== id));
+
+  const handleDelete = async (id: string) => {
+    try {
+      console.log('Deleting transaction with ID:', id);
+      await deleteTransaction(id);
+      setTransactions((prev) => prev.filter((t) => t._id !== id));
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
+    }
+  };
 
   return (
     <main className="max-w-4xl mx-auto p-4 space-y-6">
